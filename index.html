@@ -38,18 +38,18 @@ table{border-collapse:collapse;width:100%;min-width:440px;font-size:12px}th,td{p
 <div class="muted">กรอกจำนวนหลุมจอดที่ไม่ใช้งาน ระบบคำนวณจำนวนที่ใช้งานทันทีเมื่อพิมพ์หรือยืนยันค่า แยกแต่ละประเภทและช่วงเวลา</div>
 <div class="section">1.1 MTB</div><div class="total-pill">MTB: ตรวจสอบเฉพาะยอดรวม 51 หลุมจอด</div>
 <div class="tablewrap"><table><thead><tr><th>ช่วงเวลา</th><th>ใช้งาน (คำนวณ)</th><th>ไม่ใช้งาน (กรอก)</th></tr></thead><tbody>
-<tr><td>10.00–14.00 น.</td><td><input id="mtbUsePeak" type="number" min="0" value="45" readonly aria-label="คำนวณอัตโนมัติ"></td><td><input id="mtbFreePeak" type="number" min="0" value="51"></td></tr>
-<tr><td class="report-period">08.00–17.00 น.</td><td><input id="mtbUseDay" type="number" min="0" value="47" readonly aria-label="คำนวณอัตโนมัติ"></td><td><input id="mtbFreeDay" type="number" min="0" value="51"></td></tr>
+<tr><td>10.00 น. - 14.00 น.</td><td><input id="mtbUsePeak" type="number" min="0" value="45" readonly aria-label="คำนวณอัตโนมัติ"></td><td><input id="mtbFreePeak" type="number" min="0" value="51"></td></tr>
+<tr><td class="report-period">08.00 น. - 17.00 น.</td><td><input id="mtbUseDay" type="number" min="0" value="47" readonly aria-label="คำนวณอัตโนมัติ"></td><td><input id="mtbFreeDay" type="number" min="0" value="51"></td></tr>
 </tbody></table></div><div id="mtbCheck" class="validation"></div>
 <div class="section">1.2 SAT-1</div><div class="total-pill">SAT-1: ตรวจสอบเฉพาะยอดรวม 28 หลุมจอด</div>
 <div class="tablewrap"><table><thead><tr><th>ช่วงเวลา</th><th>ใช้งาน (คำนวณ)</th><th>ไม่ใช้งาน (กรอก)</th></tr></thead><tbody>
-<tr><td>10.00–14.00 น.</td><td><input id="satUsePeak" type="number" min="0" value="25" readonly aria-label="คำนวณอัตโนมัติ"></td><td><input id="satFreePeak" type="number" min="0" value="28"></td></tr>
-<tr><td class="report-period">08.00–17.00 น.</td><td><input id="satUseDay" type="number" min="0" value="27" readonly aria-label="คำนวณอัตโนมัติ"></td><td><input id="satFreeDay" type="number" min="0" value="28"></td></tr>
+<tr><td>10.00 น. - 14.00 น.</td><td><input id="satUsePeak" type="number" min="0" value="25" readonly aria-label="คำนวณอัตโนมัติ"></td><td><input id="satFreePeak" type="number" min="0" value="28"></td></tr>
+<tr><td class="report-period">08.00 น. - 17.00 น.</td><td><input id="satUseDay" type="number" min="0" value="27" readonly aria-label="คำนวณอัตโนมัติ"></td><td><input id="satFreeDay" type="number" min="0" value="28"></td></tr>
 </tbody></table></div><div id="satCheck" class="validation"></div>
 <div class="section">2. Remote Stand</div><div class="total-pill">Remote Bay: ตรวจสอบเฉพาะยอดรวม 69 หลุมจอด</div>
 <div class="tablewrap"><table><thead><tr><th>ช่วงเวลา</th><th>ใช้งาน (คำนวณ)</th><th>ไม่ใช้งาน (กรอก)</th></tr></thead><tbody>
-<tr><td>10.00–14.00 น.</td><td><input id="remoteUsePeak" type="number" min="0" value="46" readonly aria-label="คำนวณอัตโนมัติ"></td><td><input id="remoteFreePeak" type="number" min="0" value="69"></td></tr>
-<tr><td class="report-period">08.00–17.00 น.</td><td><input id="remoteUseDay" type="number" min="0" value="63" readonly aria-label="คำนวณอัตโนมัติ"></td><td><input id="remoteFreeDay" type="number" min="0" value="69"></td></tr>
+<tr><td>10.00 น. - 14.00 น.</td><td><input id="remoteUsePeak" type="number" min="0" value="46" readonly aria-label="คำนวณอัตโนมัติ"></td><td><input id="remoteFreePeak" type="number" min="0" value="69"></td></tr>
+<tr><td class="report-period">08.00 น. - 17.00 น.</td><td><input id="remoteUseDay" type="number" min="0" value="63" readonly aria-label="คำนวณอัตโนมัติ"></td><td><input id="remoteFreeDay" type="number" min="0" value="69"></td></tr>
 </tbody></table></div><div id="remoteCheck" class="validation"></div>
 <div class="section">3. รายการการปิดหลุมจอดฯ</div>
 <div class="field"><label>3.1 ระยะยาว (มากกว่า 24 ชั่วโมง)</label><div id="longList"></div><button type="button" class="add" id="addLong">＋ เพิ่มรายการระยะยาว</button></div>
@@ -90,7 +90,7 @@ $("addShort").addEventListener("click",()=>addClosure("shortList"));
 function setStatus(s){$("status").textContent=s}
 function num(id){return Number($(id).value||0)}
 function checkGroup(prefix,total){
- const rows=[["Peak", "ช่วง 10.00–14.00 น."],["Day","ช่วง 08.00–17.00 น."]];
+ const rows=[["Peak", "ช่วง 10.00 น. - 14.00 น."],["Day","ช่วง 08.00 น. - 17.00 น."]];
  let valid=true, messages=[];
  rows.forEach(([suffix,label])=>{
   const free=num(prefix+"Free"+suffix);
