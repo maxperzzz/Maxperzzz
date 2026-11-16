@@ -61,6 +61,13 @@ table{border-collapse:collapse;width:100%;min-width:440px;font-size:12px}th,td{p
 <tr><td class="report-period">08.00 น. - 17.00 น.</td><td><input id="remoteUseDay" type="number" min="0" value="63" readonly aria-label="คำนวณอัตโนมัติ"></td><td><input id="remoteFreeDay" type="number" min="0" value="69"></td></tr>
 </tbody></table></div><div id="remoteCheck" class="validation"></div>
 <div class="section">3. รายการการปิดหลุมจอดฯ</div>
+<div class="field">
+ <label for="aoccPaste">นำเข้าข้อความจาก AOCC (วางได้หลายรายการ)</label>
+ <textarea id="aoccPaste" rows="7" placeholder="วางข้อความรายการปิดหลุมจอดจาก AOCC ที่นี่..."></textarea>
+ <div class="actions"><button type="button" class="primary" id="parseAocc">แยกข้อมูลอัตโนมัติ</button><button type="button" class="secondary" id="clearAocc">ล้างข้อความ</button></div>
+ <div class="muted">ระบบแยกหมายเลขหลุม สาเหตุ วันเวลา และจัดกลุ่มตามระยะเวลาปิด กรุณาตรวจสอบผลก่อนนำเข้ารายงาน</div>
+ <div id="aoccPreview" class="validation" style="white-space:pre-wrap;margin-top:8px">ยังไม่มีการแยกข้อมูล</div>
+</div>
 <div class="field"><label>3.1 ระยะยาว (มากกว่า 24 ชั่วโมง)</label><div id="longList"></div><button type="button" class="add" id="addLong">＋ เพิ่มรายการระยะยาว</button></div>
 <div class="field"><label>3.2 ระยะสั้น (น้อยกว่าหรือเท่ากับ 24 ชั่วโมง)</label><div id="shortList"></div><button type="button" class="add" id="addShort">＋ เพิ่มรายการระยะสั้น</button></div>
 <div class="section">4–5. อากาศยานที่ไม่ทำการบิน</div>
@@ -96,6 +103,89 @@ function closureValues(id){return [...$(id).querySelectorAll("input")].map(x=>x.
 sampleLong.forEach(x=>addClosure("longList",x));sampleShort.forEach(x=>addClosure("shortList",x));
 $("addLong").addEventListener("click",()=>addClosure("longList"));
 $("addShort").addEventListener("click",()=>addClosure("shortList"));
+
+function parseThaiDateTime(text){
+ const m=text.match(/วันที่\s*(\d{1,2})\s*([ก-๙.]+)\s*(\d{2,4})\s*เวลา\s*(\d{1,2})\.(\d{2})\s*น?/);
+ if(!m)return null;
+ const months={"ม.ค.":1,"มกราคม":1,"ก.พ.":2,"กุมภาพันธ์":2,"มี.ค.":3,"มีนาคม":3,"เม.ย.":4,"เมษายน":4,"พ.ค.":5,"พฤษภาคม":5,"มิ.ย.":6,"มิถุนายน":6,"ก.ค.":7,"กรกฎาคม":7,"ส.ค.":8,"สิงหาคม":8,"ก.ย.":9,"กันยายน":9,"ต.ค.":10,"ตุลาคม":10,"พ.ย.":11,"พฤศจิกายน":11,"ธ.ค.":12,"ธันวาคม":12};
+ const mon=months[m[2]]; if(!mon)return null;
+ let year=Number(m[3]); if(year<100)year+=2500; if(year>2400)year-=543;
+ return Date.UTC(year,mon-1,Number(m[1]),Number(m[4]),Number(m[5]));
+}
+function durationBetween(a,b){
+ if(a!=null&&b!=null)return Math.round((b-a)/60000);
+ return null;
+}
+function parseTimeOnly(line){
+ const ms=[...line.matchAll(/(?:เวลา\s*)?(\d{1,2})\.(\d{2})\s*น\./g)];
+ if(ms.length<2)return null;
+ const a=Number(ms[0][1])*60+Number(ms[0][2]), b=Number(ms[1][1])*60+Number(ms[1][2]);
+ return b>=a?b-a:1440-a+b;
+}
+function parseAoccText(raw){
+ const lines=raw.split(/\r?\n/).map(x=>x.trim()).filter(x=>x && /ปิดหลุมจอดฯ/.test(x));
+ const records=[],errors=[];
+ lines.forEach((line,index)=>{
+  const standMatch=line.match(/ปิดหลุมจอดฯ\s*([A-Za-z]?\d{1,4}(?:\s*[-–]\s*[A-Za-z]?\d{1,4})?(?:\s*,\s*[A-Za-z]?\d{1,4})*)/i);
+  if(!standMatch){errors.push(`บรรทัด ${index+1}: ไม่พบหมายเลขหลุมจอด`);return;}
+  const stand=standMatch[1].replace(/\s+/g,"");
+  let cause=(line.split("เพื่อ")[1]?.split("ตั้งแต่")[0] || line.split("เนื่องจาก")[1]?.split("ตั้งแต่")[0] || "ไม่ระบุสาเหตุ").trim().replace(/[.。]$/,"");
+  if(/S116/i.test(stand) && /400HZ/i.test(line)){
+   cause="ซ่อมบำรุงสะพานเทียบฯ และซ่อมบำรุงระบบไฟฟ้า 400HZ และ PC-AIR";
+  }
+  const starts=[...line.matchAll(/ตั้งแต่\s*วันที่/g)];
+  const dates=[...line.matchAll(/วันที่\s*\d{1,2}\s*[ก-๙.]+\s*\d{2,4}\s*เวลา\s*\d{1,2}\.\d{2}\s*น?/g)];
+  const dt=[...line.matchAll(/วันที่\s*\d{1,2}\s*[ก-๙.]+\s*\d{2,4}\s*เวลา\s*\d{1,2}\.\d{2}\s*น?/g)].map(m=>parseThaiDateTime(m[0]));
+  let mins=null, detail="", openEnded=false;
+  if(dt.length>=2){mins=durationBetween(dt[0],dt[1]);detail=`${Math.floor(mins/60)} ชม. ${mins%60} นาที`;}
+  else if(dt.length===1){openEnded=true;detail="ยังไม่ระบุเวลาเปิด";}
+  else {
+   mins=parseTimeOnly(line);
+   if(mins!=null){
+    if(/S116/i.test(stand) && /400HZ/i.test(line)){
+     const times=[...line.matchAll(/(?:เวลา\\s*)?(\\d{1,2})\\.(\\d{2})\\s*น\\./g)];
+     const minutes=times.map(m=>Number(m[1])*60+Number(m[2]));
+     const first=minutes[1]>=minutes[0]?minutes[1]-minutes[0]:1440-minutes[0]+minutes[1];
+     const second=minutes[3]>=minutes[2]?minutes[3]-minutes[2]:1440-minutes[2]+minutes[3];
+     mins=first+second;
+     detail=`สะพานเทียบฯ ${Math.floor(first/60)} ชม. ${first%60} นาที / ระบบไฟฟ้า 400HZ และ PC-AIR ${Math.floor(second/60)} ชม. ${second%60} นาที`;
+    } else detail=`${Math.floor(mins/60)} ชม. ${mins%60} นาที (คำนวณจากเวลา โดยสมมติวันเดียวกันหรือข้ามเที่ยงคืน)`;
+   }
+   else {errors.push(`บรรทัด ${index+1}: ไม่พบวันเวลาเริ่ม/สิ้นสุดที่อ่านได้`);return;}
+  }
+  // A single stand with multiple distinct work windows (e.g. S116) remains one closure record.
+  const category=(openEnded || (mins!=null&&mins>1440))?"long":"short";
+  const record={stand,cause,detail,category,raw:line,openEnded};
+  if(/S116/i.test(stand) && /400HZ/i.test(line) && records.some(r=>r.stand.toUpperCase()==="S116")){
+   const prior=records.find(r=>r.stand.toUpperCase()==="S116");
+   prior.cause += " และ " + cause;
+   prior.detail += " / " + detail;
+   prior.raw += " | " + line;
+   if(category==="long")prior.category="long";
+  } else records.push(record);
+ });
+ return {records,errors};
+}
+function importAocc(){
+ const raw=$("aoccPaste").value.trim();
+ if(!raw){$("aoccPreview").textContent="กรุณาวางข้อความจาก AOCC ก่อน";return;}
+ const {records,errors}=parseAoccText(raw);
+ $("longList").innerHTML="";$("shortList").innerHTML="";
+ records.forEach(r=>{
+  const label=`${r.stand} — ${r.cause} (${r.detail})`;
+  addClosure(r.category==="long"?"longList":"shortList",label);
+ });
+ const longN=records.filter(r=>r.category==="long").length,shortN=records.filter(r=>r.category==="short").length;
+ const lines=records.map((r,i)=>`${i+1}. ${r.stand} | ${r.cause} | ${r.detail} | ${r.category==="long"?"ระยะยาว":"ระยะสั้น"}`);
+ $("aoccPreview").textContent=`แยกได้ ${records.length} รายการ: ระยะยาว ${longN} / ระยะสั้น ${shortN}`+
+  (lines.length?"\\n"+lines.join("\\n"):"")+
+  (errors.length?"\\n\\nต้องตรวจสอบ:\\n"+errors.join("\\n"):"");
+ if(records.length)setStatus("นำเข้ารายการแล้ว กรุณาตรวจสอบรายละเอียดและกดสร้างรายงาน");
+ makeReport();
+}
+$("parseAocc").addEventListener("click",importAocc);
+$("clearAocc").addEventListener("click",()=>{$("aoccPaste").value="";$("aoccPreview").textContent="ยังไม่มีการแยกข้อมูล";});
+
 function setStatus(s){$("status").textContent=s}
 function num(id){return Number($(id).value||0)}
 function checkGroup(prefix,total){
@@ -211,6 +301,7 @@ $("reset").addEventListener("click",()=>{
  const vals={mtbFreePeak:51,mtbFreeDay:51,satFreePeak:28,satFreeDay:28,remoteFreePeak:69,remoteFreeDay:69,parkedAircraft:0,tgAircraft:0};
  Object.entries(vals).forEach(([k,v])=>$(k).value=v);
  $("longList").innerHTML="";$("shortList").innerHTML="";
+ $("aoccPaste").value="";$("aoccPreview").textContent="ยังไม่มีการแยกข้อมูล";
  sampleLong.forEach(x=>addClosure("longList",x));sampleShort.forEach(x=>addClosure("shortList",x));
  recalculateFromInputs();makeReport();setStatus("คืนค่าข้อมูลตัวอย่างแล้ว");
 });
