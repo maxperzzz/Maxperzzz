@@ -111,7 +111,7 @@ function thaiDate(iso){
 }
 function thaiTime(t){if(!t)return "-";return t.replace(":",".")+" น."}
 function updatePeriodLabels(){
- const label=`${thaiTime($("start").value).replace(" น.","")}–${thaiTime($("end").value)}`;
+ const label=`${thaiTime($("start").value)} - ${thaiTime($("end").value)}`;
  document.querySelectorAll(".report-period").forEach(el=>el.textContent=label);
 }
 function makeReport(){
