@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#14213d">
+<title>Apron Daily Operation Report</title>
+<style>
+:root{--navy:#14213d;--blue:#2563eb;--bg:#f3f6fb;--line:#dce3ee;--muted:#64748b;--text:#172033;--white:#fff;--red:#b91c1c;--green:#15803d}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans Thai",sans-serif;line-height:1.5}
+header{background:var(--navy);color:white;padding:21px 17px 24px}.head,main{max-width:1160px;margin:auto}.eyebrow{font-size:11px;letter-spacing:.15em;opacity:.7;font-weight:700}h1{font-size:clamp(22px,4vw,29px);margin:5px 0}.sub{font-size:13px;color:#cbd5e1}
+main{padding:18px 14px 40px}.layout{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:16px;align-items:start}.card{background:white;border:1px solid var(--line);border-radius:15px;padding:17px;box-shadow:0 5px 18px #0f172a08}
+h2{font-size:17px;margin:0 0 13px}.section{font-size:14px;font-weight:800;color:#1e3a8a;margin:19px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line)}.section:first-of-type{margin-top:0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field{margin-bottom:11px}label{display:block;font-size:12px;font-weight:700;margin-bottom:5px}
+input,textarea{width:100%;border:1px solid #cbd5e1;border-radius:9px;padding:9px 10px;font:inherit;font-size:14px;background:white;color:var(--text);min-width:0}
+input:focus,textarea:focus{outline:2px solid #bfdbfe;border-color:var(--blue)} input[readonly]{background:#f1f5f9;color:#475569;font-weight:700;cursor:default}textarea{min-height:90px;resize:vertical}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;margin-bottom:10px}
+table{border-collapse:collapse;width:100%;min-width:440px;font-size:12px}th,td{padding:7px 6px;border-bottom:1px solid var(--line);text-align:center}th{background:#f1f5f9;font-weight:700}td:first-child{text-align:left;font-weight:700}td input{padding:6px 5px;text-align:center;font-size:13px;width:65px}
+.total-pill{display:inline-block;background:#eff6ff;color:#1d4ed8;border-radius:7px;padding:5px 9px;font-size:12px;font-weight:800;margin:0 0 9px}
+.validation{font-size:11px;margin:0 0 10px;padding:7px 9px;border-radius:8px;background:#f8fafc;color:var(--muted)}.validation.ok{background:#f0fdf4;color:var(--green)}.validation.bad{background:#fef2f2;color:var(--red)}
+.closure-row{display:flex;gap:7px;align-items:flex-start;margin:7px 0}.closure-row input{flex:1}.remove{background:#fee2e2;color:#991b1b;padding:8px 10px;white-space:nowrap}.add{background:#e8edf5;color:#24324a;padding:8px 11px;font-size:12px}
+.preview{white-space:pre-wrap;overflow-wrap:anywhere;background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:14px;font-size:13px;line-height:1.65;min-height:420px;max-height:75vh;overflow:auto}
+.actions{display:flex;gap:8px;margin-top:12px}button{border:0;border-radius:9px;padding:11px 13px;font:inherit;font-size:13px;font-weight:700;cursor:pointer}.primary{background:var(--blue);color:white;flex:1}.secondary{background:#e8edf5;color:#24324a}.status{font-size:12px;color:var(--green);min-height:20px;margin-top:8px}.muted{color:var(--muted);font-size:11px}.small-label{font-size:11px;color:var(--muted);font-weight:500}
+@media(max-width:820px){.layout{grid-template-columns:1fr}.preview{max-height:none;min-height:360px}.card{padding:14px}}
+</style>
+</head>
+<body>
+<header><div class="head"><div class="eyebrow">REPORT GENERATOR · AIRPORT OPERATIONS</div><h1>Daily Operation Report</h1><div class="sub">งานบริหารหลุมจอดฯ · แบบฟอร์มรายงานประจำวัน</div></div></header>
+<main><div class="layout">
+<section class="card">
+<h2>กรอกข้อมูลรายงาน</h2>
+<div class="section">ข้อมูลทั่วไป</div>
+<div class="grid2">
+ <div class="field"><label for="date">วันที่รายงาน</label><input id="date" type="date" value=""></div>
+ <div class="field"><label>ช่วงเวลารายงาน</label><div class="grid2"><input id="start" type="time" value="08:00" aria-label="เวลาเริ่ม"><input id="end" type="time" value="17:00" aria-label="เวลาสิ้นสุด"></div></div>
+</div>
+<div class="section">1. Contact Gate · ข้อมูลจากศูนย์ AOCC</div>
+<div class="muted">กรอกจำนวนหลุมจอดที่ไม่ใช้งาน ระบบคำนวณจำนวนที่ใช้งานทันทีเมื่อพิมพ์หรือยืนยันค่า แยกแต่ละประเภทและช่วงเวลา</div>
+<div class="section">1.1 MTB</div><div class="total-pill">MTB: ตรวจสอบเฉพาะยอดรวม 51 หลุมจอด</div>
+<div class="tablewrap"><table><thead><tr><th>ช่วงเวลา</th><th>ใช้งาน (คำนวณ)</th><th>ไม่ใช้งาน (กรอก)</th></tr></thead><tbody>
+<tr><td>10.00–14.00 น.</td><td><input id="mtbUsePeak" type="number" min="0" value="45" readonly aria-label="คำนวณอัตโนมัติ"></td><td><input id="mtbFreePeak" type="number" min="0" value="51"></td></tr>
+<tr><td>ช่วงเวลารายงาน</td><td><input id="mtbUseDay" type="number" min="0" value="47" readonly aria-label="คำนวณอัตโนมัติ"></td><td><input id="mtbFreeDay" type="number" min="0" value="51"></td></tr>
+</tbody></table></div><div id="mtbCheck" class="validation"></div>
+<div class="section">1.2 SAT-1</div><div class="total-pill">SAT-1: ตรวจสอบเฉพาะยอดรวม 28 หลุมจอด</div>
+<div class="tablewrap"><table><thead><tr><th>ช่วงเวลา</th><th>ใช้งาน (คำนวณ)</th><th>ไม่ใช้งาน (กรอก)</th></tr></thead><tbody>
+<tr><td>10.00–14.00 น.</td><td><input id="satUsePeak" type="number" min="0" value="25" readonly aria-label="คำนวณอัตโนมัติ"></td><td><input id="satFreePeak" type="number" min="0" value="28"></td></tr>
+<tr><td>ช่วงเวลารายงาน</td><td><input id="satUseDay" type="number" min="0" value="27" readonly aria-label="คำนวณอัตโนมัติ"></td><td><input id="satFreeDay" type="number" min="0" value="28"></td></tr>
+</tbody></table></div><div id="satCheck" class="validation"></div>
+<div class="section">2. Remote Stand</div><div class="total-pill">Remote Bay: ตรวจสอบเฉพาะยอดรวม 69 หลุมจอด</div>
+<div class="tablewrap"><table><thead><tr><th>ช่วงเวลา</th><th>ใช้งาน (คำนวณ)</th><th>ไม่ใช้งาน (กรอก)</th></tr></thead><tbody>
+<tr><td>10.00–14.00 น.</td><td><input id="remoteUsePeak" type="number" min="0" value="46" readonly aria-label="คำนวณอัตโนมัติ"></td><td><input id="remoteFreePeak" type="number" min="0" value="69"></td></tr>
+<tr><td>ช่วงเวลารายงาน</td><td><input id="remoteUseDay" type="number" min="0" value="63" readonly aria-label="คำนวณอัตโนมัติ"></td><td><input id="remoteFreeDay" type="number" min="0" value="69"></td></tr>
+</tbody></table></div><div id="remoteCheck" class="validation"></div>
+<div class="section">3. รายการการปิดหลุมจอดฯ</div>
+<div class="field"><label>3.1 ระยะยาว (มากกว่า 24 ชั่วโมง)</label><div id="longList"></div><button type="button" class="add" id="addLong">＋ เพิ่มรายการระยะยาว</button></div>
+<div class="field"><label>3.2 ระยะสั้น (น้อยกว่าหรือเท่ากับ 24 ชั่วโมง)</label><div id="shortList"></div><button type="button" class="add" id="addShort">＋ เพิ่มรายการระยะสั้น</button></div>
+<div class="section">4–5. อากาศยานที่ไม่ทำการบิน</div>
+<div class="grid2">
+<div class="field"><label>4. อากาศยานไม่ทำการบิน (มากกว่า 7 วัน)</label><input id="parkedAircraft" type="number" min="0" value="0"></div>
+<div class="field"><label>5. อากาศยาน TG ในแผนดังกล่าว</label><input id="tgAircraft" type="number" min="0" value="0"></div>
+</div>
+<div class="actions"><button class="secondary" id="reset">คืนค่าตัวอย่าง</button><button class="primary" id="generate">สร้างรายงาน</button></div>
+<p class="muted">ข้อมูลเริ่มต้นอ้างอิงจากตัวอย่างวันที่ 12 พ.ย. 69 คุณสามารถแก้ไขตัวเลขและรายการได้</p>
+</section>
+<section class="card">
+<h2>ข้อความรายงานสำหรับ LINE</h2>
+<div id="output" class="preview" aria-live="polite"></div>
+<div class="actions"><button class="primary" id="copy">คัดลอกข้อความไป LINE</button></div>
+<div id="status" class="status"></div>
+</section>
+</div></main>
+<script>
+const $=id=>document.getElementById(id);
+const fixed={mtb:51,sat:28,remote:69};
+const sampleLong=[];
+const sampleShort=[];
+function addClosure(containerId,text=""){
+ const row=document.createElement("div");row.className="closure-row";
+ const input=document.createElement("input");input.type="text";input.value=text;input.placeholder="ระบุหลุมจอด สาเหตุ และช่วงเวลา";
+ input.setAttribute("aria-label","รายละเอียดการปิดหลุมจอด");
+ const btn=document.createElement("button");btn.type="button";btn.className="remove";btn.textContent="ลบ";
+ btn.addEventListener("click",()=>{row.remove();updateReport();});
+ input.addEventListener("input",()=>setStatus("มีการแก้ไขข้อมูล กดสร้างรายงานเพื่ออัปเดตข้อความ"));
+ row.append(input,btn);$(containerId).append(row);
+}
+function closureValues(id){return [...$(id).querySelectorAll("input")].map(x=>x.value.trim()).filter(Boolean)}
+sampleLong.forEach(x=>addClosure("longList",x));sampleShort.forEach(x=>addClosure("shortList",x));
+$("addLong").addEventListener("click",()=>addClosure("longList"));
+$("addShort").addEventListener("click",()=>addClosure("shortList"));
+function setStatus(s){$("status").textContent=s}
+function num(id){return Number($(id).value||0)}
+function checkGroup(prefix,total){
+ const rows=[["Peak", "ช่วง 10.00–14.00 น."],["Day","ช่วงเวลารายงาน"]];
+ let valid=true, messages=[];
+ rows.forEach(([suffix,label])=>{
+  const free=num(prefix+"Free"+suffix);
+  const useId=prefix+"Use"+suffix;
+  const use=total-free;
+  const inRange=Number.isFinite(free)&&free>=0&&free<=total;
+  $(useId).value=inRange?use:0;
+  if(!inRange)valid=false;
+  messages.push(`${label}: ไม่ใช้งาน ${free} · ใช้งาน ${inRange?use:"ตรวจสอบจำนวนที่กรอก"} / ${total} หลุมจอด ${inRange?"✓":"✗ เกินจำนวนทั้งหมดหรือเป็นค่าติดลบ"}`);
+ });
+ const el=$(prefix+"Check");el.className="validation "+(valid?"ok":"bad");el.textContent=messages.join(" | ");
+ return valid;
+}
+function thaiDate(iso){
+ if(!iso)return "-";const [y,m,d]=iso.split("-").map(Number);
+ const months=["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
+ return `${d} ${months[m-1]} ${String(y+543).slice(-2)}`;
+}
+function thaiTime(t){if(!t)return "-";return t.replace(":",".")+" น."}
+function makeReport(){
+ const start=thaiTime($("start").value),end=thaiTime($("end").value),date=thaiDate($("date").value);
+ const allValid=checkGroup("mtb",fixed.mtb)&checkGroup("sat",fixed.sat)&checkGroup("remote",fixed.remote);
+ const block=(name,total,prefix)=>[
+ `${name} (${total} หลุมจอด)`,
+ "ช่วงเวลา 10.00 น.- 14.00 น.",
+ `- ใช้งานไป ${num(prefix+"UsePeak")} หลุมจอด`,
+ `- ไม่ใช้งาน ${num(prefix+"FreePeak")} หลุมจอด`,
+ `ช่วงเวลา ${start}- ${end}`,
+ `- ใช้งานไป ${num(prefix+"UseDay")} หลุมจอด`,
+ `- ไม่ใช้งาน ${num(prefix+"FreeDay")} หลุมจอด`
+ ].join("\n");
+ const long=closureValues("longList"),short=closureValues("shortList");
+ const out=[
+ "เรียน ผอก.ฝปข.ทสภ. ครับ",
+ "เรียน รอก.ฝปข.ทสภ. ครับ",
+ "เรียน ผอก.สบข.ฝปข.ทสภ. ครับ",
+ "",
+ "งานบริหารหลุมจอดฯ",
+ "ขอรายงานการปฏิบัติงาน",
+ `ประจำวันที่ ${date} เวลา ${start} ถึงเวลา ${end}`,
+ "",
+ "ข้อมูลจากศูนย์ AOCC",
+ "1. Contact Gate",
+ "1.1 MTB",
+ block("MTB",fixed.mtb,"mtb"),
+ "1.2 SAT-1",
+ block("SAT-1",fixed.sat,"sat"),
+ "",
+ "2. Remote Stand",
+ block("Remote Stand",fixed.remote,"remote"),
+ "",
+ "3. รายการการปิดหลุมจอดฯ",
+ "3.1 ระยะยาว (มากกว่า 24 ชั่วโมง)",
+ ...(long.length?long.map(x=>"- "+x):["- ไม่มี"]),
+ "3.2 ระยะสั้น (น้อยกว่าหรือเท่ากับ 24 ชั่วโมง)",
+ ...(short.length?short.map(x=>"- "+x):["- ไม่มี"]),
+ "",
+ "4. อากาศยานที่ไม่ทำการบิน (มากกว่า 7 วัน)",
+ `มีจำนวน ${num("parkedAircraft")} ลำ`,
+ "",
+ "5. อากาศยาน TG ที่จอดอยู่ในแผนอากาศยานที่ไม่ทำการบิน",
+ `จำนวน ${num("tgAircraft")} ลำ`
+ ].join("\n");
+ $("output").textContent=out;
+ setStatus(allValid?"ตรวจสอบแยกครบทั้ง 3 ประเภทแล้ว: MTB 51, SAT-1 28 และ Remote Bay 69 หลุมจอด ถูกต้อง":"⚠️ มียอดของประเภทใดประเภทหนึ่งไม่ตรง กรุณาดูข้อความตรวจสอบใต้ตารางของประเภทนั้น");
+ return out;
+}
+function updateReport(){makeReport()}
+$("generate").addEventListener("click",makeReport);
+$("copy").addEventListener("click",async()=>{
+ const report=makeReport();
+ if(!checkGroup("mtb",fixed.mtb)||!checkGroup("sat",fixed.sat)||!checkGroup("remote",fixed.remote)){
+  setStatus("ยังคัดลอกไม่ได้: กรุณาตรวจแก้เฉพาะประเภทที่ยอดไม่ตรง โดยดูคำเตือนใต้ตาราง MTB, SAT-1 หรือ Remote Bay");return;
+ }
+ try{await navigator.clipboard.writeText(report);setStatus("คัดลอกแล้ว พร้อมนำไปวางใน LINE");}
+ catch(e){const r=document.createRange();r.selectNodeContents($("output"));const sel=getSelection();sel.removeAllRanges();sel.addRange(r);setStatus("เลือกข้อความแล้ว กรุณากดค้างและเลือกคัดลอก");}
+});
+$("reset").addEventListener("click",()=>{
+ $("date").value="";$("start").value="08:00";$("end").value="17:00";
+ const vals={mtbFreePeak:51,mtbFreeDay:51,satFreePeak:28,satFreeDay:28,remoteFreePeak:69,remoteFreeDay:69,parkedAircraft:0,tgAircraft:0};
+ Object.entries(vals).forEach(([k,v])=>$(k).value=v);
+ $("longList").innerHTML="";$("shortList").innerHTML="";
+ sampleLong.forEach(x=>addClosure("longList",x));sampleShort.forEach(x=>addClosure("shortList",x));
+ recalculateFromInputs();makeReport();setStatus("คืนค่าข้อมูลตัวอย่างแล้ว");
+});
+function recalculateFromInputs(){
+ const validMtb=checkGroup("mtb",fixed.mtb);
+ const validSat=checkGroup("sat",fixed.sat);
+ const validRemote=checkGroup("remote",fixed.remote);
+ if(validMtb && validSat && validRemote){
+   setStatus("คำนวณจำนวนหลุมจอดที่ใช้งานแล้ว");
+ } else {
+   setStatus("⚠️ จำนวนไม่ใช้งานต้องอยู่ระหว่าง 0 ถึงจำนวนหลุมจอดทั้งหมดของประเภทนั้น");
+ }
+}
+["mtbFreePeak","mtbFreeDay","satFreePeak","satFreeDay","remoteFreePeak","remoteFreeDay"].forEach(id=>{
+ const field=$(id);
+ field.addEventListener("input",recalculateFromInputs);
+ field.addEventListener("change",recalculateFromInputs);
+ field.addEventListener("keyup",recalculateFromInputs);
+});
+["date","start","end","parkedAircraft","tgAircraft"].forEach(id=>{
+ $(id).addEventListener("input",()=>setStatus("มีการแก้ไขข้อมูล กดสร้างรายงานเพื่ออัปเดตข้อความ"));
+});
+
+recalculateFromInputs();
+makeReport();
+</script>
+</body></html>
