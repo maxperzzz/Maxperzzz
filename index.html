@@ -22,6 +22,10 @@ table{border-collapse:collapse;width:100%;min-width:440px;font-size:12px}th,td{p
 .preview{white-space:pre-wrap;overflow-wrap:anywhere;background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:14px;font-size:13px;line-height:1.65;min-height:420px;max-height:75vh;overflow:auto}
 .actions{display:flex;gap:8px;margin-top:12px}button{border:0;border-radius:9px;padding:11px 13px;font:inherit;font-size:13px;font-weight:700;cursor:pointer}.primary{background:var(--blue);color:white;flex:1}.secondary{background:#e8edf5;color:#24324a}.status{font-size:12px;color:var(--green);min-height:20px;margin-top:8px}.muted{color:var(--muted);font-size:11px}.small-label{font-size:11px;color:var(--muted);font-weight:500}
 @media(max-width:820px){.layout{grid-template-columns:1fr}.preview{max-height:none;min-height:360px}.card{padding:14px}}
+
+.shift-switch{display:flex;gap:10px;margin:8px 0 16px}
+.shift-btn{flex:1;border:1px solid var(--line,#d1d5db);border-radius:10px;padding:12px 16px;background:#fff;color:var(--text,#111827);font-weight:700;cursor:pointer}
+.shift-btn.active{background:#174ea6;color:#fff;border-color:#174ea6}
 </style>
 </head>
 <body>
@@ -29,6 +33,11 @@ table{border-collapse:collapse;width:100%;min-width:440px;font-size:12px}th,td{p
 <main><div class="layout">
 <section class="card">
 <h2>กรอกข้อมูลรายงาน</h2>
+<div class="section">เลือกเวรปฏิบัติงาน</div>
+<div class="shift-switch" role="group" aria-label="เลือกเวร">
+ <button type="button" id="morningShift" class="shift-btn active" aria-pressed="true">เวรเช้า</button>
+ <button type="button" id="eveningShift" class="shift-btn" aria-pressed="false">เวรเย็น</button>
+</div>
 <div class="section">ข้อมูลทั่วไป</div>
 <div class="grid2">
  <div class="field"><label for="date">วันที่รายงาน</label><input id="date" type="date" value=""></div>
@@ -38,17 +47,17 @@ table{border-collapse:collapse;width:100%;min-width:440px;font-size:12px}th,td{p
 <div class="muted">กรอกจำนวนหลุมจอดที่ไม่ใช้งาน ระบบคำนวณจำนวนที่ใช้งานทันทีเมื่อพิมพ์หรือยืนยันค่า แยกแต่ละประเภทและช่วงเวลา</div>
 <div class="section">1.1 MTB</div><div class="total-pill">MTB: ตรวจสอบเฉพาะยอดรวม 51 หลุมจอด</div>
 <div class="tablewrap"><table><thead><tr><th>ช่วงเวลา</th><th>ใช้งาน (คำนวณ)</th><th>ไม่ใช้งาน (กรอก)</th></tr></thead><tbody>
-<tr><td>10.00 น. - 14.00 น.</td><td><input id="mtbUsePeak" type="number" min="0" value="45" readonly aria-label="คำนวณอัตโนมัติ"></td><td><input id="mtbFreePeak" type="number" min="0" value="51"></td></tr>
+<tr><td class="peak-period">10.00 น. - 14.00 น.</td><td><input id="mtbUsePeak" type="number" min="0" value="45" readonly aria-label="คำนวณอัตโนมัติ"></td><td><input id="mtbFreePeak" type="number" min="0" value="51"></td></tr>
 <tr><td class="report-period">08.00 น. - 17.00 น.</td><td><input id="mtbUseDay" type="number" min="0" value="47" readonly aria-label="คำนวณอัตโนมัติ"></td><td><input id="mtbFreeDay" type="number" min="0" value="51"></td></tr>
 </tbody></table></div><div id="mtbCheck" class="validation"></div>
 <div class="section">1.2 SAT-1</div><div class="total-pill">SAT-1: ตรวจสอบเฉพาะยอดรวม 28 หลุมจอด</div>
 <div class="tablewrap"><table><thead><tr><th>ช่วงเวลา</th><th>ใช้งาน (คำนวณ)</th><th>ไม่ใช้งาน (กรอก)</th></tr></thead><tbody>
-<tr><td>10.00 น. - 14.00 น.</td><td><input id="satUsePeak" type="number" min="0" value="25" readonly aria-label="คำนวณอัตโนมัติ"></td><td><input id="satFreePeak" type="number" min="0" value="28"></td></tr>
+<tr><td class="peak-period">10.00 น. - 14.00 น.</td><td><input id="satUsePeak" type="number" min="0" value="25" readonly aria-label="คำนวณอัตโนมัติ"></td><td><input id="satFreePeak" type="number" min="0" value="28"></td></tr>
 <tr><td class="report-period">08.00 น. - 17.00 น.</td><td><input id="satUseDay" type="number" min="0" value="27" readonly aria-label="คำนวณอัตโนมัติ"></td><td><input id="satFreeDay" type="number" min="0" value="28"></td></tr>
 </tbody></table></div><div id="satCheck" class="validation"></div>
 <div class="section">2. Remote Stand</div><div class="total-pill">Remote Bay: ตรวจสอบเฉพาะยอดรวม 69 หลุมจอด</div>
 <div class="tablewrap"><table><thead><tr><th>ช่วงเวลา</th><th>ใช้งาน (คำนวณ)</th><th>ไม่ใช้งาน (กรอก)</th></tr></thead><tbody>
-<tr><td>10.00 น. - 14.00 น.</td><td><input id="remoteUsePeak" type="number" min="0" value="46" readonly aria-label="คำนวณอัตโนมัติ"></td><td><input id="remoteFreePeak" type="number" min="0" value="69"></td></tr>
+<tr><td class="peak-period">10.00 น. - 14.00 น.</td><td><input id="remoteUsePeak" type="number" min="0" value="46" readonly aria-label="คำนวณอัตโนมัติ"></td><td><input id="remoteFreePeak" type="number" min="0" value="69"></td></tr>
 <tr><td class="report-period">08.00 น. - 17.00 น.</td><td><input id="remoteUseDay" type="number" min="0" value="63" readonly aria-label="คำนวณอัตโนมัติ"></td><td><input id="remoteFreeDay" type="number" min="0" value="69"></td></tr>
 </tbody></table></div><div id="remoteCheck" class="validation"></div>
 <div class="section">3. รายการการปิดหลุมจอดฯ</div>
@@ -90,7 +99,8 @@ $("addShort").addEventListener("click",()=>addClosure("shortList"));
 function setStatus(s){$("status").textContent=s}
 function num(id){return Number($(id).value||0)}
 function checkGroup(prefix,total){
- const rows=[["Peak", "ช่วง 10.00 น. - 14.00 น."],["Day","ช่วง 08.00 น. - 17.00 น."]];
+ const cfg=shiftConfig[currentShift];
+ const rows=[["Peak", `ช่วง ${cfg.peak}`],["Day",`ช่วง ${cfg.day}`]];
  let valid=true, messages=[];
  rows.forEach(([suffix,label])=>{
   const free=num(prefix+"Free"+suffix);
@@ -110,20 +120,37 @@ function thaiDate(iso){
  return `${d} ${months[m-1]} ${String(y+543).slice(-2)}`;
 }
 function thaiTime(t){if(!t)return "-";return t.replace(":",".")+" น."}
+let currentShift="morning";
+const shiftConfig={
+ morning:{start:"08:00",end:"17:00",peak:"10.00 น. - 14.00 น.",day:"08.00 น. - 17.00 น."},
+ evening:{start:"17:00",end:"08:00",peak:"22.00 น. - 01.00 น.",day:"17.00 น. - 08.00 น."}
+};
+function updateShiftUI(){
+ const cfg=shiftConfig[currentShift];
+ $("start").value=cfg.start;$("end").value=cfg.end;
+ document.querySelectorAll(".peak-period").forEach(el=>el.textContent=cfg.peak);
+ document.querySelectorAll(".report-period").forEach(el=>el.textContent=cfg.day);
+ $("morningShift").classList.toggle("active",currentShift==="morning");
+ $("eveningShift").classList.toggle("active",currentShift==="evening");
+ $("morningShift").setAttribute("aria-pressed",String(currentShift==="morning"));
+ $("eveningShift").setAttribute("aria-pressed",String(currentShift==="evening"));
+}
 function updatePeriodLabels(){
- const label=`${thaiTime($("start").value)} - ${thaiTime($("end").value)}`;
- document.querySelectorAll(".report-period").forEach(el=>el.textContent=label);
+ const cfg=shiftConfig[currentShift];
+ document.querySelectorAll(".peak-period").forEach(el=>el.textContent=cfg.peak);
+ document.querySelectorAll(".report-period").forEach(el=>el.textContent=cfg.day);
 }
 function makeReport(){
  updatePeriodLabels();
  const start=thaiTime($("start").value),end=thaiTime($("end").value),date=thaiDate($("date").value);
  const allValid=checkGroup("mtb",fixed.mtb)&checkGroup("sat",fixed.sat)&checkGroup("remote",fixed.remote);
+ const cfg=shiftConfig[currentShift];
  const block=(name,total,prefix)=>[
  `${name} (${total} หลุมจอด)`,
- "ช่วงเวลา 10.00 น.- 14.00 น.",
+ `ช่วงเวลา ${cfg.peak}` ,
  `- ใช้งานไป ${num(prefix+"UsePeak")} หลุมจอด`,
  `- ไม่ใช้งาน ${num(prefix+"FreePeak")} หลุมจอด`,
- `ช่วงเวลา ${start}- ${end}`,
+ `ช่วงเวลา ${start} - ${end}`,
  `- ใช้งานไป ${num(prefix+"UseDay")} หลุมจอด`,
  `- ไม่ใช้งาน ${num(prefix+"FreeDay")} หลุมจอด`
  ].join("\n");
@@ -164,6 +191,12 @@ function makeReport(){
  return out;
 }
 function updateReport(){makeReport()}
+$("morningShift").addEventListener("click",()=>{
+ currentShift="morning";updateShiftUI();recalculateFromInputs();makeReport();
+});
+$("eveningShift").addEventListener("click",()=>{
+ currentShift="evening";updateShiftUI();recalculateFromInputs();makeReport();
+});
 $("generate").addEventListener("click",makeReport);
 $("copy").addEventListener("click",async()=>{
  const report=makeReport();
@@ -174,7 +207,7 @@ $("copy").addEventListener("click",async()=>{
  catch(e){const r=document.createRange();r.selectNodeContents($("output"));const sel=getSelection();sel.removeAllRanges();sel.addRange(r);setStatus("เลือกข้อความแล้ว กรุณากดค้างและเลือกคัดลอก");}
 });
 $("reset").addEventListener("click",()=>{
- $("date").value="";$("start").value="08:00";$("end").value="17:00";
+ $("date").value="";updateShiftUI();
  const vals={mtbFreePeak:51,mtbFreeDay:51,satFreePeak:28,satFreeDay:28,remoteFreePeak:69,remoteFreeDay:69,parkedAircraft:0,tgAircraft:0};
  Object.entries(vals).forEach(([k,v])=>$(k).value=v);
  $("longList").innerHTML="";$("shortList").innerHTML="";
@@ -201,6 +234,7 @@ function recalculateFromInputs(){
  $(id).addEventListener("input",()=>{updatePeriodLabels();setStatus("มีการแก้ไขข้อมูล กดสร้างรายงานเพื่ออัปเดตข้อความ")});
 });
 
+updateShiftUI();
 recalculateFromInputs();
 makeReport();
 </script>
