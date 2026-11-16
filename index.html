@@ -123,7 +123,23 @@ function parseTimeOnly(line){
  return b>=a?b-a:1440-a+b;
 }
 function parseAoccText(raw){
- const lines=raw.split(/\r?\n/).map(x=>x.trim()).filter(x=>x && /ปิดหลุมจอดฯ/.test(x));
+ // Normalize Excel/HTML clipboard text, remove section labels, and split numbered items
+ // even when multiple items are embedded in one spreadsheet cell.
+ const normalized=raw
+  .replace(/<br\s*\/?\s*>/gi,"\n")
+  .replace(/&nbsp;|&#x20;|&#160;/gi," ")
+  .replace(/&quot;|&#34;/gi,"")
+  // Remove double quotes introduced by Excel/clipboard cell formatting.
+  .replace(/"/g,"")
+  .replace(/<[^>]*>/g," ")
+  .replace(/\u00a0/g," ")
+  .replace(/ตามข้อ\s*3\.\d+(?:\.\d+)?/gi,"\n")
+  .replace(/(?=\s*\d+\.\d+\.\d+\s*ปิดหลุมจอดฯ)/g,"\n");
+ const lines=normalized
+  .split(/[\r\n\t]+/)
+  .map(x=>x.trim())
+  .map(x=>x.replace(/^\s*\d+\.\d+\.\d+\s*/,"").trim())
+  .filter(x=>x && /ปิดหลุมจอดฯ/.test(x));
  const records=[],errors=[];
  lines.forEach((line,index)=>{
   const standMatch=line.match(/ปิดหลุมจอดฯ\s*([A-Za-z]?\d{1,4}(?:\s*[-–]\s*[A-Za-z]?\d{1,4})?(?:\s*,\s*[A-Za-z]?\d{1,4})*)/i);
@@ -133,8 +149,6 @@ function parseAoccText(raw){
   if(/S116/i.test(stand) && /400HZ/i.test(line)){
    cause="ซ่อมบำรุงสะพานเทียบฯ และซ่อมบำรุงระบบไฟฟ้า 400HZ และ PC-AIR";
   }
-  const starts=[...line.matchAll(/ตั้งแต่\s*วันที่/g)];
-  const dates=[...line.matchAll(/วันที่\s*\d{1,2}\s*[ก-๙.]+\s*\d{2,4}\s*เวลา\s*\d{1,2}\.\d{2}\s*น?/g)];
   const dt=[...line.matchAll(/วันที่\s*\d{1,2}\s*[ก-๙.]+\s*\d{2,4}\s*เวลา\s*\d{1,2}\.\d{2}\s*น?/g)].map(m=>parseThaiDateTime(m[0]));
   let mins=null, detail="", openEnded=false;
   if(dt.length>=2){mins=durationBetween(dt[0],dt[1]);detail=`${Math.floor(mins/60)} ชม. ${mins%60} นาที`;}
@@ -143,7 +157,7 @@ function parseAoccText(raw){
    mins=parseTimeOnly(line);
    if(mins!=null){
     if(/S116/i.test(stand) && /400HZ/i.test(line)){
-     const times=[...line.matchAll(/(?:เวลา\\s*)?(\\d{1,2})\\.(\\d{2})\\s*น\\./g)];
+     const times=[...line.matchAll(/(?:เวลา\s*)?(\d{1,2})\.(\d{2})\s*น\./g)];
      const minutes=times.map(m=>Number(m[1])*60+Number(m[2]));
      const first=minutes[1]>=minutes[0]?minutes[1]-minutes[0]:1440-minutes[0]+minutes[1];
      const second=minutes[3]>=minutes[2]?minutes[3]-minutes[2]:1440-minutes[2]+minutes[3];
@@ -153,14 +167,13 @@ function parseAoccText(raw){
    }
    else {errors.push(`บรรทัด ${index+1}: ไม่พบวันเวลาเริ่ม/สิ้นสุดที่อ่านได้`);return;}
   }
-  // A single stand with multiple distinct work windows (e.g. S116) remains one closure record.
   const category=(openEnded || (mins!=null&&mins>1440))?"long":"short";
   const record={stand,cause,detail,category,raw:line,openEnded};
   if(/S116/i.test(stand) && /400HZ/i.test(line) && records.some(r=>r.stand.toUpperCase()==="S116")){
    const prior=records.find(r=>r.stand.toUpperCase()==="S116");
    prior.cause += " และ " + cause;
    prior.detail += " / " + detail;
-   prior.raw += " | " + line;
+   prior.raw += " / " + line;
    if(category==="long")prior.category="long";
   } else records.push(record);
  });
@@ -172,11 +185,12 @@ function importAocc(){
  const {records,errors}=parseAoccText(raw);
  $("longList").innerHTML="";$("shortList").innerHTML="";
  records.forEach(r=>{
-  const label=`${r.stand} — ${r.cause} (${r.detail})`;
+  // Keep the full original AOCC wording in the report; use parsed duration only for classification.
+  const label=r.raw.replace(/\\s*\\|\\s*/g," / ");
   addClosure(r.category==="long"?"longList":"shortList",label);
  });
  const longN=records.filter(r=>r.category==="long").length,shortN=records.filter(r=>r.category==="short").length;
- const lines=records.map((r,i)=>`${i+1}. ${r.stand} | ${r.cause} | ${r.detail} | ${r.category==="long"?"ระยะยาว":"ระยะสั้น"}`);
+ const lines=records.map((r,i)=>`${i+1}. ${r.raw.replace(/\\s*\\|\\s*/g," / ")} [${r.category==="long"?"ระยะยาว":"ระยะสั้น"}]`);
  $("aoccPreview").textContent=`แยกได้ ${records.length} รายการ: ระยะยาว ${longN} / ระยะสั้น ${shortN}`+
   (lines.length?"\\n"+lines.join("\\n"):"")+
   (errors.length?"\\n\\nต้องตรวจสอบ:\\n"+errors.join("\\n"):"");
