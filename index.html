@@ -123,61 +123,64 @@ function parseTimeOnly(line){
  return b>=a?b-a:1440-a+b;
 }
 function parseAoccText(raw){
- // Normalize Excel/HTML clipboard text, remove section labels, and split numbered items
- // even when multiple items are embedded in one spreadsheet cell.
  const normalized=raw
   .replace(/<br\s*\/?\s*>/gi,"\n")
   .replace(/&nbsp;|&#x20;|&#160;/gi," ")
   .replace(/&quot;|&#34;/gi,"")
-  // Remove double quotes introduced by Excel/clipboard cell formatting.
   .replace(/"/g,"")
   .replace(/<[^>]*>/g," ")
   .replace(/\u00a0/g," ")
   .replace(/ตามข้อ\s*3\.\d+(?:\.\d+)?/gi,"\n")
   .replace(/(?=\s*\d+\.\d+\.\d+\s*ปิดหลุมจอดฯ)/g,"\n");
- const lines=normalized
-  .split(/[\r\n\t]+/)
+ const lines=normalized.split(/[\r\n\t]+/)
   .map(x=>x.trim())
   .map(x=>x.replace(/^\s*\d+\.\d+\.\d+\s*/,"").trim())
   .filter(x=>x && /ปิดหลุมจอดฯ/.test(x));
  const records=[],errors=[];
  lines.forEach((line,index)=>{
-  const standMatch=line.match(/ปิดหลุมจอดฯ\s*([A-Za-z]?\d{1,4}(?:\s*[-–]\s*[A-Za-z]?\d{1,4})?(?:\s*,\s*[A-Za-z]?\d{1,4})*)/i);
-  if(!standMatch){errors.push(`บรรทัด ${index+1}: ไม่พบหมายเลขหลุมจอด`);return;}
-  const stand=standMatch[1].replace(/\s+/g,"");
-  let cause=(line.split("เพื่อ")[1]?.split("ตั้งแต่")[0] || line.split("เนื่องจาก")[1]?.split("ตั้งแต่")[0] || "ไม่ระบุสาเหตุ").trim().replace(/[.。]$/,"");
-  if(/S116/i.test(stand) && /400HZ/i.test(line)){
-   cause="ซ่อมบำรุงสะพานเทียบฯ และซ่อมบำรุงระบบไฟฟ้า 400HZ และ PC-AIR";
-  }
+  const standMatch=line.match(/ปิดหลุมจอดฯ\s*(.*?)\s*(?=เพื่อ|เนื่องจาก)/i);
+  if(!standMatch){errors.push(`บรรทัด ${index+1}: ไม่พบหมายเลขหลุมจอดหรือสาเหตุ`);return;}
+  const standText=standMatch[1].trim().replace(/\s+และ\s+/g,", ");
+  const stands=standText.split(",").map(s=>s.trim()).filter(Boolean);
+  if(!stands.length){errors.push(`บรรทัด ${index+1}: ไม่พบหมายเลขหลุมจอด`);return;}
+  const causeMatch=line.match(/(?:เพื่อ|เนื่องจาก)\s*(.*?)(?=\s*ตั้งแต่|$)/i);
+  const cause=(causeMatch?causeMatch[1]:"ไม่ระบุสาเหตุ").trim().replace(/[.。]$/,"");
+  const timeText=(line.match(/ตั้งแต่[\s\S]*$/i)||[""])[0].replace(/\s+/g," ").trim();
   const dt=[...line.matchAll(/วันที่\s*\d{1,2}\s*[ก-๙.]+\s*\d{2,4}\s*เวลา\s*\d{1,2}\.\d{2}\s*น?/g)].map(m=>parseThaiDateTime(m[0]));
   let mins=null, detail="", openEnded=false;
   if(dt.length>=2){mins=durationBetween(dt[0],dt[1]);detail=`${Math.floor(mins/60)} ชม. ${mins%60} นาที`;}
   else if(dt.length===1){openEnded=true;detail="ยังไม่ระบุเวลาเปิด";}
   else {
    mins=parseTimeOnly(line);
-   if(mins!=null){
-    if(/S116/i.test(stand) && /400HZ/i.test(line)){
-     const times=[...line.matchAll(/(?:เวลา\s*)?(\d{1,2})\.(\d{2})\s*น\./g)];
-     const minutes=times.map(m=>Number(m[1])*60+Number(m[2]));
-     const first=minutes[1]>=minutes[0]?minutes[1]-minutes[0]:1440-minutes[0]+minutes[1];
-     const second=minutes[3]>=minutes[2]?minutes[3]-minutes[2]:1440-minutes[2]+minutes[3];
-     mins=first+second;
-     detail=`สะพานเทียบฯ ${Math.floor(first/60)} ชม. ${first%60} นาที / ระบบไฟฟ้า 400HZ และ PC-AIR ${Math.floor(second/60)} ชม. ${second%60} นาที`;
-    } else detail=`${Math.floor(mins/60)} ชม. ${mins%60} นาที (คำนวณจากเวลา โดยสมมติวันเดียวกันหรือข้ามเที่ยงคืน)`;
-   }
+   if(mins!=null)detail=`${Math.floor(mins/60)} ชม. ${mins%60} นาที (คำนวณจากเวลา โดยสมมติวันเดียวกันหรือข้ามเที่ยงคืน)`;
    else {errors.push(`บรรทัด ${index+1}: ไม่พบวันเวลาเริ่ม/สิ้นสุดที่อ่านได้`);return;}
   }
   const category=(openEnded || (mins!=null&&mins>1440))?"long":"short";
-  const record={stand,cause,detail,category,raw:line,openEnded};
-  if(/S116/i.test(stand) && /400HZ/i.test(line) && records.some(r=>r.stand.toUpperCase()==="S116")){
-   const prior=records.find(r=>r.stand.toUpperCase()==="S116");
-   prior.cause += " และ " + cause;
-   prior.detail += " / " + detail;
-   prior.raw += " / " + line;
-   if(category==="long")prior.category="long";
-  } else records.push(record);
+  records.push({stand:stands[0],stands,cause,detail,category,raw:line,openEnded,groupTime:timeText});
  });
- return {records,errors};
+
+ // Group across all pasted sections when the reason and complete time wording match.
+ // Different time windows remain separate to avoid changing the operational meaning.
+ const grouped=new Map();
+ records.forEach(r=>{
+  const normCause=r.cause.toLowerCase().replace(/\s+/g," ").replace(/[ฯๆ.,]/g,"").trim();
+  const normTime=r.groupTime.toLowerCase().replace(/\s+/g," ").replace(/[ ]*([.,])/g,"$1").trim();
+  const key=normCause+"||"+normTime;
+  if(!grouped.has(key)){
+   grouped.set(key,{...r,stands:[...r.stands]});
+  } else {
+   const g=grouped.get(key);
+   r.stands.forEach(s=>{if(!g.stands.some(x=>x.toUpperCase()===s.toUpperCase()))g.stands.push(s);});
+   if(r.category==="long")g.category="long";
+  }
+ });
+ const merged=[...grouped.values()].map(r=>{
+  const m=r.raw.match(/ปิดหลุมจอดฯ\s*.*?\s*(?=(?:เพื่อ|เนื่องจาก))/i);
+  const suffix=r.raw.slice(m?m[0].length:0).trim();
+  r.raw=`ปิดหลุมจอดฯ ${r.stands.join(", ")} ${suffix}`.trim();
+  return r;
+ });
+ return {records:merged,errors};
 }
 function importAocc(){
  const raw=$("aoccPaste").value.trim();
