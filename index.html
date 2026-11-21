@@ -60,6 +60,12 @@ table{border-collapse:collapse;width:100%;min-width:440px;font-size:12px}th,td{p
 <tr><td class="peak-period">10.00 น. - 14.00 น.</td><td><input id="remoteUsePeak" type="number" min="0" value="46" readonly aria-label="คำนวณอัตโนมัติ"></td><td><input id="remoteFreePeak" type="number" min="0" value="69"></td></tr>
 <tr><td class="report-period">08.00 น. - 17.00 น.</td><td><input id="remoteUseDay" type="number" min="0" value="63" readonly aria-label="คำนวณอัตโนมัติ"></td><td><input id="remoteFreeDay" type="number" min="0" value="69"></td></tr>
 </tbody></table></div><div id="remoteCheck" class="validation"></div>
+<div id="remoteEveningStandField" class="field" hidden>
+ <label for="remoteEveningStands">หลุมจอด Remote Stand ที่ไม่ใช้งาน (เฉพาะเวรเย็น 17.00 - 08.00 น.)</label>
+ <input id="remoteEveningStands" type="text" placeholder="เช่น 201, 501">
+ <div class="muted">กรอกหมายเลขหลุมจอดคั่นด้วยเครื่องหมายจุลภาค ระบบจะนับจำนวนและใส่หมายเลขในข้อความรายงาน LINE อัตโนมัติ</div>
+ <div id="remoteEveningStandCheck" class="validation"></div>
+</div>
 <div class="section">3. รายการการปิดหลุมจอดฯ</div>
 <div class="field">
  <label for="aoccPaste">นำเข้าข้อความจาก AOCC (วางได้หลายรายการ)</label>
@@ -186,7 +192,7 @@ function importAocc(){
  const raw=$("aoccPaste").value.trim();
  if(!raw){$("aoccPreview").textContent="กรุณาวางข้อความจาก AOCC ก่อน";return;}
  const {records,errors}=parseAoccText(raw);
- $("longList").innerHTML="";$("shortList").innerHTML="";
+ $("longList").innerHTML="";$("shortList").innerHTML="";$("remoteEveningStands").value="";
  records.forEach(r=>{
   // Keep the full original AOCC wording in the report; use parsed duration only for classification.
   const label=r.raw.replace(/\\s*\\|\\s*/g," / ");
@@ -228,6 +234,7 @@ function thaiDate(iso){
 }
 function thaiTime(t){if(!t)return "-";return t.replace(":",".")+" น."}
 let currentShift="morning";
+let remoteMorningFreeDayValue=69;
 const shiftConfig={
  morning:{start:"08:00",end:"17:00",peak:"10.00 น. - 14.00 น.",day:"08.00 น. - 17.00 น."},
  evening:{start:"17:00",end:"08:00",peak:"22.00 น. - 01.00 น.",day:"17.00 น. - 08.00 น."}
@@ -247,7 +254,39 @@ function updatePeriodLabels(){
  document.querySelectorAll(".peak-period").forEach(el=>el.textContent=cfg.peak);
  document.querySelectorAll(".report-period").forEach(el=>el.textContent=cfg.day);
 }
+function getRemoteEveningStandList(){
+ const raw=$("remoteEveningStands").value.trim();
+ if(!raw)return [];
+ const parts=raw.split(/[,，、\n]+/).map(x=>x.trim()).filter(Boolean);
+ const unique=[];
+ parts.forEach(x=>{if(!unique.some(y=>y.toUpperCase()===x.toUpperCase()))unique.push(x);});
+ return unique;
+}
+function formatStandNames(items){
+ if(items.length<2)return items.join("");
+ return items.slice(0,-1).join(", ")+" และ "+items[items.length-1];
+}
+function syncRemoteEveningStandInput(){
+ const field=$("remoteEveningStandField");
+ const countField=$("remoteFreeDay");
+ const isEvening=currentShift==="evening";
+ field.hidden=!isEvening;
+ if(isEvening){
+  const stands=getRemoteEveningStandList();
+  countField.value=stands.length;
+  countField.readOnly=true;
+  const valid=stands.length<=fixed.remote;
+  const check=$("remoteEveningStandCheck");
+  check.className="validation "+(valid?"ok":"bad");
+  check.textContent=stands.length
+   ? `ระบุ ${stands.length} หลุมจอด${valid?"":" — เกินจำนวน Remote Bay ทั้งหมด 69 หลุม"}`
+   : "ยังไม่ได้ระบุหมายเลขหลุมจอด";
+ }else{
+  countField.readOnly=false;
+ }
+}
 function makeReport(){
+ syncRemoteEveningStandInput();
  updatePeriodLabels();
  const start=thaiTime($("start").value),end=thaiTime($("end").value),date=thaiDate($("date").value);
  const allValid=checkGroup("mtb",fixed.mtb)&checkGroup("sat",fixed.sat)&checkGroup("remote",fixed.remote);
@@ -279,7 +318,16 @@ function makeReport(){
  block("SAT-1",fixed.sat,"sat"),
  "",
  "2. Remote Stand",
- block("Remote Stand",fixed.remote,"remote"),
+ (()=>{ 
+  const remoteBlock=block("Remote Stand",fixed.remote,"remote").split("\n");
+  if(currentShift==="evening"){
+   const stands=getRemoteEveningStandList();
+   remoteBlock[remoteBlock.length-1]=stands.length
+    ? `- ไม่ใช้งาน ${stands.length} หลุมจอด (${formatStandNames(stands)})`
+    : `- ไม่ใช้งาน ${num("remoteFreeDay")} หลุมจอด`;
+  }
+  return remoteBlock.join("\n");
+ })(),
  "",
  "3. รายการการปิดหลุมจอดฯ",
  "3.1 ระยะยาว (มากกว่า 24 ชั่วโมง)",
@@ -299,10 +347,13 @@ function makeReport(){
 }
 function updateReport(){makeReport()}
 $("morningShift").addEventListener("click",()=>{
- currentShift="morning";updateShiftUI();recalculateFromInputs();makeReport();
+ currentShift="morning";
+ $("remoteFreeDay").value=remoteMorningFreeDayValue;
+ updateShiftUI();syncRemoteEveningStandInput();recalculateFromInputs();makeReport();
 });
 $("eveningShift").addEventListener("click",()=>{
- currentShift="evening";updateShiftUI();recalculateFromInputs();makeReport();
+ if(currentShift==="morning")remoteMorningFreeDayValue=num("remoteFreeDay");
+ currentShift="evening";updateShiftUI();syncRemoteEveningStandInput();recalculateFromInputs();makeReport();
 });
 $("generate").addEventListener("click",makeReport);
 $("copy").addEventListener("click",async()=>{
@@ -316,6 +367,7 @@ $("copy").addEventListener("click",async()=>{
 $("reset").addEventListener("click",()=>{
  $("date").value="";updateShiftUI();
  const vals={mtbFreePeak:51,mtbFreeDay:51,satFreePeak:28,satFreeDay:28,remoteFreePeak:69,remoteFreeDay:69,parkedAircraft:0,tgAircraft:0};
+ remoteMorningFreeDayValue=69;
  Object.entries(vals).forEach(([k,v])=>$(k).value=v);
  $("longList").innerHTML="";$("shortList").innerHTML="";
  $("aoccPaste").value="";$("aoccPreview").textContent="ยังไม่มีการแยกข้อมูล";
@@ -334,15 +386,27 @@ function recalculateFromInputs(){
 }
 ["mtbFreePeak","mtbFreeDay","satFreePeak","satFreeDay","remoteFreePeak","remoteFreeDay"].forEach(id=>{
  const field=$(id);
- field.addEventListener("input",recalculateFromInputs);
- field.addEventListener("change",recalculateFromInputs);
+ field.addEventListener("input",()=>{
+  if(id==="remoteFreeDay" && currentShift==="morning")remoteMorningFreeDayValue=num("remoteFreeDay");
+  recalculateFromInputs();
+ });
+ field.addEventListener("change",()=>{
+  if(id==="remoteFreeDay" && currentShift==="morning")remoteMorningFreeDayValue=num("remoteFreeDay");
+  recalculateFromInputs();
+ });
  field.addEventListener("keyup",recalculateFromInputs);
+});
+$("remoteEveningStands").addEventListener("input",()=>{
+ syncRemoteEveningStandInput();
+ recalculateFromInputs();
+ makeReport();
 });
 ["date","start","end","parkedAircraft","tgAircraft"].forEach(id=>{
  $(id).addEventListener("input",()=>{updatePeriodLabels();setStatus("มีการแก้ไขข้อมูล กดสร้างรายงานเพื่ออัปเดตข้อความ")});
 });
 
 updateShiftUI();
+syncRemoteEveningStandInput();
 recalculateFromInputs();
 makeReport();
 </script>
